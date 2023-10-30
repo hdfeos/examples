@@ -1,0 +1,42 @@
+name: lin20 hdfeos f
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    name: Build hdfeos
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Install Autotools Dependencies (Linux)
+        run: |
+          sudo apt update
+          sudo apt install automake autoconf libtool libtool-bin gfortran bison flex
+      - name: Install HDF4
+        run: |
+          wget https://support.hdfgroup.org/ftp/HDF/releases/HDF4.2.15/src/hdf-4.2.15.tar.gz
+          tar zxvf hdf-4.2.15.tar.gz
+          cd hdf-4.2.15
+          ./configure --prefix=/usr/local --disable-shared --enable-hdf4-xdr --enable-fortran --disable-netcdf
+          make
+          sudo make install
+          cd ..
+          rm -rf hdf-4.2.15 hdf-4.2.15.tar.gz
+      - name: Install HDF-EOS2
+        run: |
+          wget -O hdfeos.tar.gz "https://git.earthdata.nasa.gov/projects/DAS/repos/hdfeos/raw/hdf-eos2-3.0-src.tar.gz?at=3128a738021501c821549955f6c78348e5f33850"
+          tar zxvf hdfeos.tar.gz
+          cd hdf-eos2-3.0
+          ./configure LDFLAGS="-L/usr/local/lib -lmfhdf" --prefix=/usr/local/ --disable-shared --enable-install-include --enable-fortran
+          make
+          make check
+          sudo make install
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Run test
+        run: |
+          pwd
+          ls
+          cd code
+          wget https://gamma.hdfgroup.org/ftp/pub/outgoing/NASAHDF/MORE/LAADS/MOD/MOD04_L2.A2014150.0320.061.2017312130731.hdf
+          make
+          ./read_swath
